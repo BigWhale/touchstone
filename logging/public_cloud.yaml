@@ -1,17 +1,17 @@
 heat_template_version: 2013-05-23
 
 description: |
-  A template that establishes a Django webstack with logging capabilies using Elastic Search, Logstash & Kibana
+  A template that establishes Elastic Search, Logstash & Kibana
 
 parameters:
 
   image:
     description: Rackspace Cloud Server Image (Distribution)
     type: string
-    default: Ubuntu 14.04 LTS (Trusty Tahr)
+    default: Ubuntu 14.04 LTS (Trusty Tahr) (PVHVM)
     constraints:
     - allowed_values:
-      - Ubuntu 14.04 LTS (Trusty Tahr)
+      - Ubuntu 14.04 LTS (Trusty Tahr) (PVHVM)
       description: Must be a valid Rackspace Cloud Server Image, default is Ubuntu 14.04 LTS (Trusty Tahr)
 
   branch:
@@ -29,7 +29,7 @@ resources:
   elk_server:
     type: "Rackspace::Cloud::Server"
     properties:
-      flavor: 2 GB Performance
+      flavor: 1 GB General Purpose v1
       image: { get_param: image }
       name: "elk"
       user_data:
@@ -37,14 +37,14 @@ resources:
           template: |
             #!/bin/bash
             apt-get update && apt-get install curl -y
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/elk.sh | sudo bash /dev/stdin %branch%
+            curl -skS -L https://raw.github.com/BigWhale/touchstone/%branch%/logging/server_userdata/elk.sh | sudo bash /dev/stdin %branch%
           params:
             "%branch%": { get_param: branch }
 
   rsyslog_server:
     type: "Rackspace::Cloud::Server"
     properties:
-      flavor: 2 GB Performance
+      flavor: 1 GB General Purpose v1
       image: { get_param: image }
       name: "rsyslog"
       user_data:
@@ -52,116 +52,13 @@ resources:
           template: |
             #!/bin/bash
             apt-get update && apt-get install curl -y
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/rsyslog_server.sh | sudo bash /dev/stdin %branch% %elk_server_ip%
+            curl -skS -L https://raw.github.com/BigWhale/touchstone/%branch%/logging/server_userdata/rsyslog_server.sh | sudo bash /dev/stdin %branch% %elk_server_ip%
           params:
             "%branch%": { get_param: branch }
             "%elk_server_ip%": { get_attr: [elk_server, privateIPv4] }
 
-  load_balancer_frontend:
-    type: "Rackspace::Cloud::LoadBalancer"
-    properties:
-      name: "lb-frontend"
-      nodes:
-      - addresses: [get_attr: [frontend_server1, privateIPv4], get_attr: [frontend_server2, privateIPv4]]
-        port: 80
-        condition: ENABLED
-      port: 80
-      protocol: HTTP
-      algorithm: "LEAST_CONNECTIONS"
-      virtualIps:
-      - type: PUBLIC
-        ipVersion: IPV4
-      healthMonitor:
-        attemptsBeforeDeactivation: 3
-        delay: 10
-        timeout: 120
-        type: HTTP
-        path: "/"
-        statusRegex: "^[234][0-9][0-9]$"
-        bodyRegex: ""
-
-  frontend_server1:
-    type: "Rackspace::Cloud::Server"
-    properties:
-      flavor: 2 GB Performance
-      image: { get_param: image }
-      name: "frontend-1"
-      user_data:
-        str_replace:
-          template: |
-            #!/bin/bash
-            apt-get update && apt-get install curl -y
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/frontend.sh | sudo bash /dev/stdin %branch% %webapp_ip1% %webapp_ip2%
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/rsyslog_client_frontend.sh | sudo bash /dev/stdin %branch% %rsyslog_server_ip%
-          params:
-            "%branch%": { get_param: branch }
-            "%webapp_ip1%": { get_attr: [webapp_nodes1, privateIPv4, 0] }
-            "%webapp_ip2%": { get_attr: [webapp_nodes1, privateIPv4, 1] }
-            "%rsyslog_server_ip%": { get_attr: [rsyslog_server, privateIPv4] }
-
-  webapp_nodes1:
-    type: "OS::Heat::ResourceGroup"
-    properties:
-      count: 2
-      resource_def:
-        type: "Rackspace::Cloud::Server"
-        properties:
-            flavor: 2 GB Performance
-            image: { get_param: image }
-            user_data:
-                str_replace:
-                    template: |
-                        #!/bin/bash
-                        apt-get update && apt-get install curl -y
-                        curl -sKS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/webapp.sh | sudo bash /dev/stdin %branch%
-                        curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/rsyslog_client_webapp.sh | sudo bash /dev/stdin %branch% %rsyslog_server_ip%
-                    params:
-                        "%branch%": { get_param: branch }
-                        "%rsyslog_server_ip%": { get_attr: [rsyslog_server, privateIPv4] }
-
-  frontend_server2:
-    type: "Rackspace::Cloud::Server"
-    properties:
-      flavor: 2 GB Performance
-      image: { get_param: image }
-      name: "frontend-2"
-      user_data:
-        str_replace:
-          template: |
-            #!/bin/bash
-            apt-get update && apt-get install curl -y
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/frontend.sh | sudo bash /dev/stdin %branch% %webapp_ip1% %webapp_ip2%
-            curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/rsyslog_client_frontend.sh | sudo bash /dev/stdin %branch% %rsyslog_server_ip%
-          params:
-            "%branch%": { get_param: branch }
-            "%webapp_ip1%": { get_attr: [webapp_nodes2, privateIPv4, 0] }
-            "%webapp_ip2%": { get_attr: [webapp_nodes2, privateIPv4, 1] }
-            "%rsyslog_server_ip%": { get_attr: [rsyslog_server, privateIPv4] }
-
-  webapp_nodes2:
-    type: "OS::Heat::ResourceGroup"
-    properties:
-      count: 2
-      resource_def:
-        type: "Rackspace::Cloud::Server"
-        properties:
-            flavor: 2 GB Performance
-            image: { get_param: image }
-            user_data:
-                str_replace:
-                    template: |
-                        #!/bin/bash
-                        apt-get update && apt-get install curl -y
-                        curl -sKS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/webapp.sh | sudo bash /dev/stdin %branch%
-                        curl -skS -L https://raw.github.com/metral/touchstone/%branch%/logging/server_userdata/rsyslog_client_webapp.sh | sudo bash /dev/stdin %branch% %rsyslog_server_ip%
-                    params:
-                        "%branch%": { get_param: branch }
-                        "%rsyslog_server_ip%": { get_attr: [rsyslog_server, privateIPv4] }
-
 outputs:
-  lb_public_ip:
-    description: The public IP address of the load balancer
-    value: { get_attr: [load_balancer_frontend, PublicIp]}
   elk_public_ip:
     description: The public IP address of the ELK stack
     value: { get_attr: [elk_server, accessIPv4]}
+
