@@ -4,11 +4,11 @@ ELK_LOGS="/var/log/elk"
 mkdir -p $ELK_LOGS
 
 # Run elasticsearch
-/opt/elasticsearch*/bin/elasticsearch > $ELK_LOGS/elasticsearch.log 2>&1 & 
+service elasticsearch start
 sleep 10
 
 # Run logstash
-curl -XDELETE "http://localhost:9200/_all" ; /opt/logstash*/bin/logstash -f {CONF_PATH}/confs > $ELK_LOGS/logstash.log 2>&1 & 
+service logstash start
 sleep 3
 
 # Run kibana

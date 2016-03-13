@@ -40,6 +40,7 @@ resources:
             curl -skS -L https://raw.github.com/BigWhale/touchstone/%branch%/logging/server_userdata/elk.sh | sudo bash /dev/stdin %branch%
           params:
             "%branch%": { get_param: branch }
+            "%elk_server_ip%": { get_attr: [elk_server, privateIPv4] }
 
   rsyslog_server:
     type: "Rackspace::Cloud::Server"
