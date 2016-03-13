@@ -15,7 +15,7 @@ dpkg -i logstash_2.2.2-1_all.deb
 rm -rf logstash_2.2.2-1_all.deb
 popd
 cp -v confs/* /etc/logstash/conf.d/
-pushd /etc/logstasth/conf.d/
+pushd /etc/logstash/conf.d/
 sed -e "s#{INTERNAL_IP}#$INTERNAL_IP#g" \
     input.conf.template | \
     tee input.conf > /dev/null
