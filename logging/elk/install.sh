@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INERNAL_IP=`ip addr show eth1 | grep 'inet' | grep -v inet6 | cut -d ' ' -f 6 | cut -d '/' -f 1`
+INTERNAL_IP=`ip addr show eth1 | grep 'inet' | grep -v inet6 | cut -d ' ' -f 6 | cut -d '/' -f 1`
 
 sudo apt-get update
 
