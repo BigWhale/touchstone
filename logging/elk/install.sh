@@ -16,7 +16,7 @@ rm -rf logstash_2.2.2-1_all.deb
 popd
 cp -v confs/* /etc/logstash/conf.d/
 pushd /etc/logstasth/conf.d/
-sed -e "s#{INERNAL_IP}#$INERNAL_IP#g" \
+sed -e "s#{INTERNAL_IP}#$INTERNAL_IP#g" \
     input.conf.template | \
     tee input.conf > /dev/null
 popd
