@@ -62,3 +62,7 @@ outputs:
     description: The public IP address of the ELK stack
     value: { get_attr: [elk_server, accessIPv4]}
 
+  elk_private_ip:
+    description: The public IP address of the ELK stack
+    value: { get_attr: [elk_server, privateIPv4]}
+
